@@ -23,7 +23,18 @@ export const fetchBingo = async (ctx: Context): Promise<BingoResponse> => {
     "https://api.hypixel.net/v2/resources/skyblock/bingo",
     { responseType: "json" },
   );
-  if (!result?.success || !Array.isArray(result.goals))
+  if (
+    result?.success !== true ||
+    !Array.isArray(result.goals) ||
+    !result.goals.every(
+      (goal) =>
+        goal != null &&
+        typeof goal.name === "string" &&
+        typeof goal.lore === "string" &&
+        (goal.requiredAmount == null || Number.isFinite(goal.requiredAmount)) &&
+        (goal.progress == null || Number.isFinite(goal.progress)),
+    )
+  )
     throw new Error("Invalid Hypixel Bingo response");
   return result;
 };
@@ -56,10 +67,10 @@ const wrapDescription = (text: string) =>
 
 const formatCell = (text: string) =>
   cleanText(text)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/([\\|*_`])/g, "\\$1")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replace(/([\\|*_`])/g, String.raw`\$1`)
     .replace(/\r\n|\r|\n/g, "<br>");
 
 export const formatBingo = (
@@ -72,7 +83,8 @@ export const formatBingo = (
     "|---|---|---|---|",
     ...sorted.map((goal) => {
       const name = formatCell(goal.name);
-      return `| ${goal.progress != null ? `**${name}**` : name} | ${formatCell(wrapDescription(goal.lore))} | ${goal.requiredAmount ?? "—"} | ${goal.progress ?? "—"} |`;
+      const displayName = goal.progress != null ? `**${name}**` : name;
+      return `| ${displayName} | ${formatCell(wrapDescription(goal.lore))} | ${goal.requiredAmount ?? "—"} | ${goal.progress ?? "—"} |`;
     }),
   ].join("\n");
 };

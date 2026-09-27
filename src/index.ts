@@ -1,5 +1,6 @@
 import { Context, Schema } from "koishi";
 import type { Command } from "koishi";
+import { registerBingo } from "#commands/bingo.js";
 import { registerCn } from "#commands/cn.js";
 import { registerDebug } from "#commands/debug.js";
 import { registerEd } from "#commands/ed.js";
@@ -74,7 +75,7 @@ export const apply = (ctx: Context, config: Config) => {
   const userIds = createFF1(config.ff1Key, "kaeman:user:v1");
 
   ctx.on("ready", () => {
-    logger.info("kaeman ready: commands vg/cn/ed/purse/debug registered");
+    logger.info("kaeman ready: commands vg/cn/ed/purse/debug/bingo registered");
   });
 
   ctx.on("dispose", () => {
@@ -98,5 +99,6 @@ export const apply = (ctx: Context, config: Config) => {
   commands.add(registerCn(ctx, config, purse));
   commands.add(registerEd(ctx, config, purse));
   commands.add(registerDebug(ctx.platform("qq", "qqguild")));
+  commands.add(registerBingo(ctx));
   commands.add(registerPurse(ctx, purse, userIds, createFF1(config.ff1Key, "kaeman:purse:v1")));
 };

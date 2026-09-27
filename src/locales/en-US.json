@@ -1,5 +1,16 @@
 {
   "commands": {
+    "bingo": {
+      "description": "Show current SkyBlock Bingo goals",
+      "messages": {
+        "intro": "**SkyBlock Bingo · {name} #{id}**\n\n> Event period (UTC+8): {start} – {end}\n> Data updated (UTC+8): {lastUpdated}",
+        "name": "Name",
+        "description": "Description",
+        "requiredAmount": "Required Amount",
+        "progress": "Progress",
+        "empty": "No Bingo goals are currently available."
+      }
+    },
     "purse": {
       "description": "Show purse balance",
       "messages": {

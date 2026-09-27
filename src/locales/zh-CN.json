@@ -1,5 +1,16 @@
 {
   "commands": {
+    "bingo": {
+      "description": "查询当前 SkyBlock Bingo 任务",
+      "messages": {
+        "intro": "**SkyBlock Bingo · {name} #{id}**\n\n> 活动时间（UTC+8）：{start} ～ {end}\n> 数据更新（UTC+8）：{lastUpdated}",
+        "name": "名称",
+        "description": "描述",
+        "requiredAmount": "所需数量",
+        "progress": "进度",
+        "empty": "当前没有 Bingo 任务。"
+      }
+    },
     "purse": {
       "description": "查询钱包余额",
       "messages": {

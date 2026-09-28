@@ -2,13 +2,7 @@ import type { Context } from "koishi";
 import { h } from "koishi";
 import { fetchBingo, formatBingo } from "#service/bingo/index.js";
 import { sendQQMarkdown } from "#service/qq/index.js";
-
-const formatTime = (timestamp: unknown) => {
-  if (typeof timestamp !== "number" || !Number.isFinite(timestamp)) return "—";
-  const date = new Date(timestamp + 8 * 60 * 60_000);
-  if (!Number.isFinite(date.getTime())) return "—";
-  return date.toISOString().slice(0, 19).replace("T", " ");
-};
+import { formatTime } from "#utils/index.js";
 
 export const registerBingo = (ctx: Context) =>
   ctx.command("bingo", "Show current SkyBlock Bingo goals").action(async ({ session }) => {

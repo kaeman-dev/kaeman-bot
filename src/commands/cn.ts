@@ -7,7 +7,7 @@ import { simulateCn } from "#service/simulator/cn/index.js";
 
 export const registerCn = (ctx: Context, config: Config, purse: Purse) =>
   ctx
-    .command("cn", "SkyBlock Crystal Nucleus Loot Simulator")
+    .command("cn")
     .alias("crystal", "ch")
     .userFields(["id"])
     .action(async ({ session }) => {

@@ -7,7 +7,7 @@ import { simulateVg } from "#service/simulator/vg/index.js";
 
 export const registerVg = (ctx: Context, config: Config, purse: Purse) =>
   ctx
-    .command("vg", "SkyBlock Vanguard Loot Simulator")
+    .command("vg")
     .userFields(["id"])
     .action(async ({ session }) => {
       const result = await simulateVg(ctx, config);

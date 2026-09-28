@@ -10,7 +10,7 @@ const helpExample = JSON.stringify(example, null, 2);
 
 export const registerEd = (ctx: Context, config: Config, purse: Purse) =>
   ctx
-    .command("ed [args:text]", "SkyBlock Ender Dragon Loot Simulator")
+    .command("ed [args:text]")
     .alias("edragsim", "eg")
     .userFields(["id"])
     .action(async ({ session }, args) => {

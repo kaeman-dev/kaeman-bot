@@ -25,10 +25,17 @@
         }
       }
     },
+    "cn": {
+      "description": "SkyBlock 水晶之核战利品模拟器"
+    },
     "ed": {
+      "description": "SkyBlock 末影龙战利品模拟器",
       "messages": {
         "helpIntro": "提交参数示例(Player允许多个, Placement第一默认为你):"
       }
+    },
+    "vg": {
+      "description": "SkyBlock 先锋战利品模拟器"
     },
     "debug": {
       "description": "发送 QQ markdown card 测试(被动回复)",

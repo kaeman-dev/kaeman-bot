@@ -12,7 +12,7 @@ export const registerPurse = (
   historyIds: FF1Encoder,
 ) => {
   const command = ctx
-    .command("purse", "Show purse balance")
+    .command("purse")
     .userFields(["id"])
     .action(async ({ session }) => {
       const balance = await purse.get(session!.user!.id);
@@ -20,7 +20,7 @@ export const registerPurse = (
     });
 
   command
-    .subcommand(".history [page:posint]", "Show purse history, 10 entries per page")
+    .subcommand(".history [page:posint]")
     .userFields(["id"])
     .example("purse history 2")
     .action(async ({ session }, page = 1) => {

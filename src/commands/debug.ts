@@ -30,25 +30,19 @@ const sendCard = (session: Session, options: QQMarkdownOptions = {}) =>
   );
 
 export const registerDebug = (ctx: Context) => {
-  const debug = ctx
-    .command("debug", "Send a QQ markdown card test (passive reply)")
-    .action(async ({ session }) => {
-      await sendCard(session!);
-    });
-  debug.subcommand(".active", "Send a proactive markdown card test").action(async ({ session }) => {
+  const debug = ctx.command("debug").action(async ({ session }) => {
+    await sendCard(session!);
+  });
+  debug.subcommand(".active").action(async ({ session }) => {
     await sendCard(session!, { active: true });
   });
-  debug
-    .subcommand(".reference", "Send a markdown card quoting the current message")
-    .action(async ({ session }) => {
-      await sendCard(session!, { reference: session!.messageId });
-    });
-  debug
-    .subcommand(".wakeup", "Send a QQ direct-message wakeup card")
-    .action(async ({ session }) => {
-      await sendCard(session!, { wakeup: true });
-    });
-  debug.subcommand(".keyboard", "Test command and callback buttons").action(async ({ session }) => {
+  debug.subcommand(".reference").action(async ({ session }) => {
+    await sendCard(session!, { reference: session!.messageId });
+  });
+  debug.subcommand(".wakeup").action(async ({ session }) => {
+    await sendCard(session!, { wakeup: true });
+  });
+  debug.subcommand(".keyboard").action(async ({ session }) => {
     const permission = { type: 0 as const, specify_user_ids: [session!.userId!] };
     await sendCard(session!, {
       keyboard: createQQKeyboard([
@@ -74,7 +68,7 @@ export const registerDebug = (ctx: Context) => {
       ]),
     });
   });
-  debug.subcommand(".prompt", "Send a QQ prompt keyboard test").action(async ({ session }) => {
+  debug.subcommand(".prompt").action(async ({ session }) => {
     await sendCard(session!, {
       keyboard: undefined,
       promptKeyboard: createQQKeyboard([
@@ -90,13 +84,11 @@ export const registerDebug = (ctx: Context) => {
       ]),
     });
   });
+  debug.subcommand(".typing [seconds:posint]").action(async ({ session }, seconds = 5) => {
+    await sendQQInputNotify(session!, seconds);
+  });
   debug
-    .subcommand(".typing [seconds:posint]", "Show QQ direct-message typing status")
-    .action(async ({ session }, seconds = 5) => {
-      await sendQQInputNotify(session!, seconds);
-    });
-  debug
-    .subcommand(".whoami", "Show caller identity info")
+    .subcommand(".whoami")
     .action(({ session }) =>
       session!.send(
         [

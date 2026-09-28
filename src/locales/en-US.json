@@ -25,10 +25,17 @@
         }
       }
     },
+    "cn": {
+      "description": "SkyBlock Crystal Nucleus Loot Simulator"
+    },
     "ed": {
+      "description": "SkyBlock Ender Dragon Loot Simulator",
       "messages": {
         "helpIntro": "Example payload (players are repeatable; the first placement defaults to you):"
       }
+    },
+    "vg": {
+      "description": "SkyBlock Vanguard Loot Simulator"
     },
     "debug": {
       "description": "Send a QQ markdown card test (passive reply)",

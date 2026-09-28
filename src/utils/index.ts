@@ -11,6 +11,13 @@ export const compact = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
 
+export const formatTime = (timestamp: unknown) => {
+  if (typeof timestamp !== "number" || !Number.isFinite(timestamp)) return "—";
+  const date = new Date(timestamp + 8 * 60 * 60_000);
+  if (!Number.isFinite(date.getTime())) return "—";
+  return date.toISOString().slice(0, 19).replace("T", " ");
+};
+
 export const rollWeighted = <T>(items: readonly T[], weight: (item: T) => number): T => {
   let roll = Math.random() * items.reduce((sum, item) => sum + weight(item), 0);
   for (const item of items) {

@@ -5,7 +5,7 @@ import { sendQQMarkdown } from "#service/qq/index.js";
 import { formatTime } from "#utils/index.js";
 
 export const registerBingo = (ctx: Context) =>
-  ctx.command("bingo", "Show current SkyBlock Bingo goals").action(async ({ session }) => {
+  ctx.command("bingo").action(async ({ session }) => {
     const bingo = await fetchBingo(ctx);
     const { goals } = bingo;
     if (!goals.length) return session!.text(".empty");

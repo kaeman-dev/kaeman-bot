@@ -2,10 +2,10 @@
   "name": "koishi-plugin-kaeman",
   "description": "Does that mean Necron is no more? I have been a mediocre master.",
   "version": "0.0.1",
-  "main": "lib/index.js",
+  "main": "src/index.ts",
   "typings": "lib/index.d.ts",
   "imports": {
-    "#*": "./lib/*"
+    "#*": "./src/*"
   },
   "files": [
     "lib",

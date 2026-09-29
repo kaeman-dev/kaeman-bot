@@ -38,6 +38,6 @@
   },
   "dependencies": {
     "@napi-rs/canvas": "^1.0.9",
-    "@noble/ciphers": "^2.4.0"
+    "hypixel-api-reborn": "^11.3.7"
   }
 }

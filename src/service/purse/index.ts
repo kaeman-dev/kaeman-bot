@@ -1,6 +1,4 @@
 import type { Context } from "koishi";
-import { $ } from "koishi";
-import { InputError } from "#error/handle.js";
 import { compact, withPurseQueue } from "#utils/index.js";
 
 export type Purse = ReturnType<typeof createPurse>;
@@ -9,31 +7,17 @@ export const createPurse = (ctx: Context) => {
   const logger = ctx.logger("kaeman");
 
   return {
-    async history(aid: number, page = 1) {
-      return withPurseQueue(ctx, async () => {
-        const total = await ctx.database.eval(
-          "kaeman.user.purse.history",
-          (row) => $.count(row.id),
-          { aid },
-        );
-        const pages = Math.max(1, Math.ceil(total / 10));
-        if (page > pages)
-          throw new InputError(
-            `Page number out of range, ${pages} pages in total`,
-            "commands.purse.messages.pageOutOfRange",
-            { pages },
-          );
-        const records = await ctx.database.get(
+    async history(aid: number) {
+      return withPurseQueue(ctx, () =>
+        ctx.database.get(
           "kaeman.user.purse.history",
           { aid },
           {
             sort: { id: "desc" },
-            offset: (page - 1) * 10,
             limit: 10,
           },
-        );
-        return { records, page, pages };
-      });
+        ),
+      );
     },
 
     async get(aid: number): Promise<number> {

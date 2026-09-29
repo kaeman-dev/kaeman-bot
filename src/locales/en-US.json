@@ -14,15 +14,10 @@
     "purse": {
       "description": "Show purse balance",
       "messages": {
-        "balance": "Current purse balance: {balance}",
-        "pageInvalid": "Page number must be a positive integer",
-        "pageOutOfRange": "Page number out of range, {pages} pages in total"
-      },
-      "history": {
-        "description": "Show purse history, 10 entries per page",
-        "messages": {
-          "empty": "No purse history yet"
-        }
+        "title": "Purse",
+        "balance": "**Balance:** {balance}",
+        "records": "**Recent Records**",
+        "empty": "No records yet"
       }
     },
     "cn": {

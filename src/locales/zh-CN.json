@@ -12,17 +12,12 @@
       }
     },
     "purse": {
-      "description": "查询钱包余额",
+      "description": "查询资金",
       "messages": {
-        "balance": "当前钱包余额: {balance}",
-        "pageInvalid": "页码必须是正整数",
-        "pageOutOfRange": "页码超出范围，共 {pages} 页"
-      },
-      "history": {
-        "description": "查询资金流水，每页 10 笔",
-        "messages": {
-          "empty": "暂无资金流水"
-        }
+        "title": "资金",
+        "balance": "**余额:** {balance}",
+        "records": "**最近资金流水**",
+        "empty": "暂无资金流水"
       }
     },
     "cn": {

@@ -1,7 +1,6 @@
 import type { Context, Session } from "koishi";
 import messages from "#assets/debug-messages.json";
-import { logError } from "#error/handle.js";
-import { withTrace } from "#error/trace.js";
+import { logError, withTrace } from "#error/handle.js";
 import {
   acknowledgeQQInteraction,
   createQQButton,

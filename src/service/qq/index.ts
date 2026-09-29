@@ -1,4 +1,4 @@
-import type { Session } from "koishi";
+import { h, type Session } from "koishi";
 import type { QQKeyboard } from "#service/qq/keyboard.js";
 
 export { createQQButton, createQQKeyboard } from "#service/qq/keyboard.js";
@@ -62,31 +62,17 @@ export const requireQQDirect = (session: Session): QQInternal => {
   return internal;
 };
 
-export const createQQReply = (session: Session, options: QQSendOptions = {}) => {
-  if (options.wakeup) {
-    requireQQDirect(session);
-    if (options.reference) throw new Error("Wakeup cannot quote a message");
-    return { is_wakeup: true };
+export const sendQQMarkdown = async (
+  session: Session,
+  markdown: QQMarkdown,
+  options: QQMarkdownOptions = {},
+): Promise<QQMessageResult> => {
+  if (session.platform !== "qq" && session.platform !== "qqguild") {
+    if (typeof markdown !== "string") throw new Error("QQ official bot required");
+    await session.send(h.text(markdown));
+    return {};
   }
-  const reference = options.reference
-    ? { message_reference: { message_id: options.reference } }
-    : {};
-  if (options.active) return reference;
-  const qqSession = session as QQSession;
-  const event = session.platform === "qq" ? qqSession.qq : qqSession.qqguild;
-  if (session.type === "interaction/button" || !session.messageId) {
-    if (event?.id) return { ...reference, event_id: event.id };
-    throw new Error("Missing reply source");
-  }
-  if (session.platform === "qq") qqSession.seq = (qqSession.seq ?? 0) + 1;
-  return {
-    ...reference,
-    msg_id: session.messageId,
-    ...(session.platform === "qq" ? { msg_seq: qqSession.seq } : {}),
-  };
-};
 
-const getQQMessageTarget = (session: Session) => {
   let internal = getQQInternal(session);
   const channelInteraction =
     session.type === "interaction/button" && (session as QQSession).qq?.d?.chat_type === 3;
@@ -100,29 +86,51 @@ const getQQMessageTarget = (session: Session) => {
     if (!guildBot?.internal) throw new Error("QQ guild adapter unavailable");
     internal = guildBot.internal;
   }
-  if (!guild)
-    return {
-      internal,
-      send: session.isDirect ? internal.sendPrivateMessage : internal.sendMessage,
-      id: session.channelId!,
-      guild,
-    };
-  if (session.isDirect) {
-    const id = (session as QQSession).qqguild?.d?.guild_id ?? session.guildId?.split("_").at(-1);
-    if (!id) throw new Error("Missing QQ guild direct-message ID");
-    return { internal, send: internal.sendDM, id, guild };
-  }
-  return { internal, send: internal.sendMessage, id: session.channelId!, guild };
-};
 
-export const sendQQMarkdown = async (
-  session: Session,
-  markdown: QQMarkdown,
-  options: QQMarkdownOptions = {},
-): Promise<QQMessageResult> => {
-  const { internal, send, id, guild } = getQQMessageTarget(session);
+  let send: QQInternal["sendMessage" | "sendPrivateMessage" | "sendDM"];
+  let id = session.channelId!;
+  if (guild && session.isDirect) {
+    const guildDirectId =
+      (session as QQSession).qqguild?.d?.guild_id ?? session.guildId?.split("_").at(-1);
+    if (!guildDirectId) throw new Error("Missing QQ guild direct-message ID");
+    send = internal.sendDM;
+    id = guildDirectId;
+  } else if (session.isDirect) {
+    send = internal.sendPrivateMessage;
+  } else {
+    send = internal.sendMessage;
+  }
   if (!send) throw new Error("QQ send API unavailable");
   if (options.promptKeyboard && guild) throw new Error("Prompt keyboard requires QQ");
+
+  let reply: object;
+  if (options.wakeup) {
+    requireQQDirect(session);
+    if (options.reference) throw new Error("Wakeup cannot quote a message");
+    reply = { is_wakeup: true };
+  } else {
+    const reference = options.reference
+      ? { message_reference: { message_id: options.reference } }
+      : {};
+    if (options.active) {
+      reply = reference;
+    } else {
+      const qqSession = session as QQSession;
+      const event = session.platform === "qq" ? qqSession.qq : qqSession.qqguild;
+      if (session.type === "interaction/button" || !session.messageId) {
+        if (!event?.id) throw new Error("Missing reply source");
+        reply = { ...reference, event_id: event.id };
+      } else {
+        if (session.platform === "qq") qqSession.seq = (qqSession.seq ?? 0) + 1;
+        reply = {
+          ...reference,
+          msg_id: session.messageId,
+          ...(session.platform === "qq" ? { msg_seq: qqSession.seq } : {}),
+        };
+      }
+    }
+  }
+
   const data = {
     markdown: {
       ...(typeof markdown === "string" ? { content: markdown } : markdown),
@@ -134,7 +142,7 @@ export const sendQQMarkdown = async (
     },
     ...(options.keyboard ? { keyboard: options.keyboard } : {}),
     ...(options.promptKeyboard ? { prompt_keyboard: { keyboard: options.promptKeyboard } } : {}),
-    ...createQQReply(session, options),
+    ...reply,
   };
   return send.call(internal, id, { ...(guild ? {} : { msg_type: 2 }), ...data });
 };

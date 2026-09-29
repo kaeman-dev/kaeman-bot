@@ -6,6 +6,7 @@ import { center, compact, rollWeighted } from "#utils/index.js";
 import { getPrices } from "#service/prices/index.js";
 import type { SimResult } from "#service/simulator/index.js";
 import edLoot from "#assets/ender-dragon-loot.json";
+import example from "#assets/ender-dragon-example.json";
 
 const stat = Schema.number().min(0).max(Number.MAX_VALUE).required();
 const requestSchema = Schema.object({
@@ -30,101 +31,8 @@ type SimPlayer = EDRequest["players"][number] & {
 
 const bonuses: Record<string, typeof edLoot.bonuses.default> = edLoot.bonuses;
 const { dragonWeights, quality, presentation } = edLoot;
-const placementTable = edLoot.placementTable as [number, number, number][];
 
 type Item = Pick<(typeof edLoot.items)[number], "id" | "name">;
-
-const dragonItems = (dragon: string) => {
-  const name = dragon.toUpperCase();
-  const display = dragon.charAt(0).toUpperCase() + dragon.slice(1);
-
-  return edLoot.items
-    .filter(
-      (item) =>
-        (!item.dragons || item.dragons.includes(dragon)) && !item.excludeDragons?.includes(dragon),
-    )
-    .map(({ dragons, excludeDragons, ...item }) => ({
-      ...item,
-      id: item.id.replaceAll("{dragon}", name),
-      name: item.name.replaceAll("{display}", display),
-    }));
-};
-
-const createSimPlayer = (req: EDRequest): SimPlayer[] => {
-  const firstPlaceDamage = req.players.reduce(
-    (max, player) => Math.max(max, player.damage_dealt),
-    0,
-  );
-
-  return req.players.map((player) => {
-    const placement = placementTable.find(
-      ([start, end]) => player.placement >= start && player.placement <= end,
-    );
-
-    return {
-      ...player,
-      rewards: new Map(),
-      quality:
-        (placement?.[2] ?? 0) +
-        (player.damage_dealt > quality.damageThreshold
-          ? quality.damageBonus
-          : quality.minimumDamageBonus) +
-        (quality.perEye * player.summoning_eyes_placed +
-          (quality.relativeDamage * player.damage_dealt) / (firstPlaceDamage || 1)),
-    };
-  });
-};
-
-const simulateDragon = (dragon: string, players: SimPlayer[]) => {
-  const items = dragonItems(dragon);
-  const bonus =
-    (Object.hasOwn(bonuses, dragon) ? bonuses[dragon] : undefined) ?? edLoot.bonuses.default;
-  const qualityOf = (item: Item) =>
-    item.id === edLoot.dye.id
-      ? 500
-      : item.id === edLoot.essence.id
-        ? 10
-        : (items.find((entry) => entry.id === item.id)?.quality ?? 0);
-
-  const ranked = [...players].sort((a, b) => b.quality - a.quality);
-  for (const item of items.filter((item) => item.major)) {
-    const eligible = ranked.filter((p) => p.quality >= item.quality && !p.rewards.has(item));
-    const winners = eligible.filter(
-      (p) =>
-        Math.random() <
-        (item.perEye ? item.baseChance * p.summoning_eyes_placed : item.baseChance) *
-          (item.petLuck ? 1 + (p.magic_find + p.pet_luck) / 100 : 1 + p.magic_find / 100),
-    );
-
-    const chosen = winners[Math.floor(Math.random() * winners.length)];
-    if (chosen) {
-      chosen.rewards.set(item, (chosen.rewards.get(item) ?? 0) + 1);
-      chosen.quality -= item.quality;
-    }
-  }
-
-  for (const player of players) {
-    let remaining = player.quality;
-    for (const item of items.filter((item) => !item.major).sort((a, b) => b.quality - a.quality)) {
-      while (remaining >= item.quality) {
-        player.rewards.set(item, (player.rewards.get(item) ?? 0) + 1);
-        remaining -= item.quality;
-      }
-    }
-    player.quality = remaining;
-  }
-
-  for (const player of players) {
-    if (Math.random() < bonus.dyeChance) player.rewards.set(edLoot.dye, 1);
-    for (let i = 0; i < bonus.essenceQuantity; i++)
-      player.rewards.set(edLoot.essence, (player.rewards.get(edLoot.essence) ?? 0) + 1);
-    player.rewards = new Map(
-      [...player.rewards.entries()].sort(([a], [b]) => qualityOf(b) - qualityOf(a)),
-    );
-  }
-
-  return players;
-};
 
 export const simulateEd = async (
   ctx: Context,
@@ -198,21 +106,91 @@ export const simulateEd = async (
 
   let profit = -(firstPlayer.summoning_eyes_placed * (prices[edLoot.costItem] ?? 0));
 
-  const simResult = simulateDragon(dragon, createSimPlayer(request));
+  const bonus =
+    (Object.hasOwn(bonuses, dragon) ? bonuses[dragon] : undefined) ?? edLoot.bonuses.default;
+  const items = edLoot.items
+    .filter(
+      (item) =>
+        (!item.dragons || item.dragons.includes(dragon)) && !item.excludeDragons?.includes(dragon),
+    )
+    .map(({ dragons, excludeDragons, ...item }) => ({
+      ...item,
+      id: item.id.replaceAll("{dragon}", dragon.toUpperCase()),
+      name: item.name.replaceAll("{display}", dragon.charAt(0).toUpperCase() + dragon.slice(1)),
+    }));
+
+  const players: SimPlayer[] = request.players.map((player) => ({
+    ...player,
+    rewards: new Map(),
+    quality:
+      ((edLoot.placementTable as [number, number, number][]).find(
+        ([start, end]) => player.placement >= start && player.placement <= end,
+      )?.[2] ?? 0) +
+      (player.damage_dealt > quality.damageThreshold
+        ? quality.damageBonus
+        : quality.minimumDamageBonus) +
+      (quality.perEye * player.summoning_eyes_placed +
+        (quality.relativeDamage * player.damage_dealt) / (firstPlayer.damage_dealt || 1)),
+  }));
+
+  const qualityOf = (item: Item) =>
+    item.id === edLoot.dye.id
+      ? 500
+      : item.id === edLoot.essence.id
+        ? 10
+        : (items.find((entry) => entry.id === item.id)?.quality ?? 0);
+
+  const byQuality = [...players].sort((a, b) => b.quality - a.quality);
+  for (const item of items.filter((item) => item.major)) {
+    const eligible = byQuality.filter((p) => p.quality >= item.quality && !p.rewards.has(item));
+    const winners = eligible.filter(
+      (p) =>
+        Math.random() <
+        (item.perEye ? item.baseChance * p.summoning_eyes_placed : item.baseChance) *
+          (item.petLuck ? 1 + (p.magic_find + p.pet_luck) / 100 : 1 + p.magic_find / 100),
+    );
+
+    const chosen = winners[Math.floor(Math.random() * winners.length)];
+    if (chosen) {
+      chosen.rewards.set(item, (chosen.rewards.get(item) ?? 0) + 1);
+      chosen.quality -= item.quality;
+    }
+  }
+
+  for (const player of players) {
+    let remaining = player.quality;
+    for (const item of items.filter((item) => !item.major).sort((a, b) => b.quality - a.quality)) {
+      while (remaining >= item.quality) {
+        player.rewards.set(item, (player.rewards.get(item) ?? 0) + 1);
+        remaining -= item.quality;
+      }
+    }
+    player.quality = remaining;
+  }
+
+  for (const player of players) {
+    if (Math.random() < bonus.dyeChance) player.rewards.set(edLoot.dye, 1);
+    for (let i = 0; i < bonus.essenceQuantity; i++)
+      player.rewards.set(edLoot.essence, (player.rewards.get(edLoot.essence) ?? 0) + 1);
+    player.rewards = new Map(
+      [...player.rewards.entries()].sort(([a], [b]) => qualityOf(b) - qualityOf(a)),
+    );
+  }
+
   if (
-    simResult.some((player) => [...player.rewards.keys()].some((item) => item.id === edLoot.dye.id))
+    players.some((player) => [...player.rewards.keys()].some((item) => item.id === edLoot.dye.id))
   )
     logger.info("rare drop: Pearlescent Dye (ed)");
-  [...simResult]
+  [...players]
     .sort((a, b) => b.damage_dealt - a.damage_dealt)
     .slice(0, presentation.playerLabels.length)
     .forEach((player, i) => {
-    const first = [...player.rewards.entries()][0];
-    if (!first) return;
-    const [item, count] = first;
-    if (i === 0) profit += (prices[item.id] ?? 0) * count;
-    text += `${presentation.playerLabels[i]} &ehas Obtained &6${item.name}${count > 1 ? ` &7x${count}` : ""}\n`;
-  });
+      const first = [...player.rewards.entries()][0];
+      if (!first) return;
+      const [item, count] = first;
+      if (i === 0) profit += (prices[item.id] ?? 0) * count;
+      text += `${presentation.playerLabels[i]} &ehas Obtained &6${item.name}${count > 1 ? ` &7x${count}` : ""}\n`;
+    });
   text += `&e[ATRI-BOT] Profit for &f${dragon.charAt(0).toUpperCase() + dragon.slice(1)} Dragon: ${profit <= 0 ? "&c" : "&6"}${compact.format(profit)}`;
 
   return { type: "dragon.png", profit, text };

@@ -7,11 +7,9 @@ import { registerEd } from "#commands/ed.js";
 import { registerPurse } from "#commands/purse.js";
 import { registerVg } from "#commands/vg.js";
 import * as database from "#database/index.js";
-import { withTrace } from "#error/trace.js";
-import { registerErrorHandling } from "#error/handle.js";
+import { InputError, logError, withTrace } from "#error/handle.js";
 import { fetchPrices } from "#service/prices/index.js";
 import { createPurse } from "#service/purse/index.js";
-import { createFF1 } from "#utils/ff1/index.js";
 import enUS from "#locales/en-US.json";
 import zhCN from "#locales/zh-CN.json";
 
@@ -22,7 +20,6 @@ export const inject = ["database"];
 export interface Config {
   priceApiUrl: string;
   priceInterval: number;
-  ff1Key: string;
 }
 
 export const Config: Schema<Config> = Schema.object({
@@ -30,12 +27,6 @@ export const Config: Schema<Config> = Schema.object({
     .default("https://raw.githubusercontent.com/SkyHelperBot/Prices/main/pricesV2.json")
     .description("SkyHelperBot price API JSON"),
   priceInterval: Schema.number().min(1).default(5).description("Price refresh interval (minutes)"),
-  ff1Key: Schema.string()
-    .role("secret")
-    .required()
-    .description(
-      "FF1 public UID encryption key, 64 hex characters (generate with openssl rand -hex 32)",
-    ),
 });
 
 export const apply = (ctx: Context, config: Config) => {
@@ -69,13 +60,28 @@ export const apply = (ctx: Context, config: Config) => {
     true,
   );
 
-  registerErrorHandling(ctx);
+  ctx.on("command-error", async (argv, error) => {
+    if (error instanceof InputError) {
+      ctx.logger("kaeman").info("input error in [%s]: %s", argv.command?.name, error.message);
+      return argv
+        .session!.send(error.path ? argv.session!.text(error.path, error.params) : error.message)
+        .catch(() => {});
+    }
+    const traceId = logError(ctx, error, `[${argv.command?.name}] Command failed`);
+    await argv.session!.send(traceId).catch((sendError) => {
+      logError(ctx, sendError, "Failed to send trace ID", "error", traceId);
+    });
+  });
   ctx.plugin(database);
   const purse = createPurse(ctx);
-  const userIds = createFF1(config.ff1Key, "kaeman:user:v1");
 
   ctx.on("ready", () => {
-    logger.info("kaeman ready: commands vg/cn/ed/purse/debug/bingo registered");
+    logger.info(
+      "kaeman ready: commands %s registered",
+      process.env.NODE_ENV === "development"
+        ? "vg/cn/ed/purse/debug/bingo"
+        : "vg/cn/ed/purse/bingo",
+    );
   });
 
   ctx.on("dispose", () => {
@@ -98,7 +104,8 @@ export const apply = (ctx: Context, config: Config) => {
   commands.add(registerVg(ctx, config, purse));
   commands.add(registerCn(ctx, config, purse));
   commands.add(registerEd(ctx, config, purse));
-  commands.add(registerDebug(ctx.platform("qq", "qqguild")));
+  if (process.env.NODE_ENV === "development")
+    commands.add(registerDebug(ctx.platform("qq", "qqguild")));
   commands.add(registerBingo(ctx));
-  commands.add(registerPurse(ctx, purse, userIds, createFF1(config.ff1Key, "kaeman:purse:v1")));
+  commands.add(registerPurse(ctx, purse));
 };

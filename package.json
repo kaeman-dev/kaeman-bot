@@ -2,12 +2,13 @@
   "name": "koishi-plugin-kaeman",
   "description": "Does that mean Necron is no more? I have been a mediocre master.",
   "version": "0.0.1",
-  "main": "src/index.ts",
+  "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "imports": {
-    "#*": "./src/*"
+    "#*": "./lib/*"
   },
   "files": [
+    "src",
     "lib",
     "dist",
     "assets"
@@ -15,6 +16,7 @@
   "license": "Apache-2.0",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "watch": "tsc -p tsconfig.json --watch --preserveWatchOutput",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
